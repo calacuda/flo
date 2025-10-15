@@ -10,7 +10,7 @@ use crate::mesh::{Vertex, MeshData};
 use crate::skinned_mesh::{SkinnedVertex, SkinnedMeshData};
 use crate::mesh_textured::{TexturedMeshData, TexturedVertex};
 use crate::texture::{TextureData, Texture};
-use crate::egui_integration::EguiIntegration;
+// use crate::egui_integration::EguiIntegration;
 use crate::memory_pool::{MemoryPoolManager, MemoryBlock};
 
 // Optional resources for different renderer configurations
@@ -154,8 +154,8 @@ pub struct VulkanRenderer {
     // Memory pool manager
     memory_pool: MemoryPoolManager,
     
-    // Egui integration
-    pub egui_integration: Option<EguiIntegration>,
+    // // Egui integration
+    // pub egui_integration: Option<EguiIntegration>,
     
     // Water rendering push constants
     water_push_constants: Option<PushConstants>,
@@ -253,7 +253,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -360,7 +360,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -506,7 +506,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -707,7 +707,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -908,7 +908,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -1046,7 +1046,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -1185,7 +1185,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes: Vec::new(),
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -1298,7 +1298,7 @@ impl VulkanRenderer {
             skinned_mesh: None,
             meshes,
             memory_pool,
-            egui_integration: None,
+            // egui_integration: None,
             water_push_constants: None,
             textured_pipelines: std::collections::HashMap::new(),
         })
@@ -3030,7 +3030,7 @@ impl VulkanRenderer {
             }
         };
         
-        self.record_command_buffer_multi_mesh_with_egui(image_index, view, proj, None);
+        // self.record_command_buffer_multi_mesh_with_egui(image_index, view, proj, None);
         
         if let Err(e) = self.core.end_frame(image_index) {
             eprintln!("Failed to end frame: {}", e);
@@ -3136,7 +3136,7 @@ impl VulkanRenderer {
             self.update_camera_matrices(view, proj);
             self.record_command_buffer_skinned(image_index);
         } else {
-            self.record_command_buffer_with_push_data(image_index, view, proj);
+            // self.record_command_buffer_with_push_data(image_index, view, proj);
         }
         
         if let Err(e) = self.core.end_frame(image_index) {
@@ -3668,615 +3668,615 @@ impl VulkanRenderer {
         );
     }
     
-    fn record_command_buffer_with_push_data(&mut self, image_index: u32, view: Mat4, proj: Mat4) {
-        self.record_command_buffer_with_push_data_and_egui(image_index, view, proj, None);
-    }
+    // fn record_command_buffer_with_push_data(&mut self, image_index: u32, view: Mat4, proj: Mat4) {
+    //     self.record_command_buffer_with_push_data_and_egui(image_index, view, proj, None);
+    // }
     
-    fn record_command_buffer_multi_mesh_with_egui(&mut self, image_index: u32, view: Mat4, proj: Mat4, egui_output: Option<egui::FullOutput>) {
-        let command_buffer = self.core.command_buffers[image_index as usize];
-        let framebuffer = self.core.framebuffers[image_index as usize];
-        
-        unsafe {
-            let begin_info = vk::CommandBufferBeginInfo::default();
-            
-            self.core.device
-                .begin_command_buffer(command_buffer, &begin_info)
-                .expect("Failed to begin command buffer");
-            
-            // Begin render pass
-            let clear_values = [
-                vk::ClearValue {
-                    color: vk::ClearColorValue {
-                        float32: CLEAR_COLOR_MAGENTA,
-                    },
-                },
-                vk::ClearValue {
-                    depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
-                        stencil: 0,
-                    },
-                },
-            ];
-            
-            let render_pass_info = vk::RenderPassBeginInfo::default()
-                .render_pass(self.core.render_pass)
-                .framebuffer(framebuffer)
-                .render_area(vk::Rect2D {
-                    offset: vk::Offset2D { x: 0, y: 0 },
-                    extent: self.core.swapchain_extent,
-                })
-                .clear_values(&clear_values);
-            
-            self.core.device.cmd_begin_render_pass(
-                command_buffer,
-                &render_pass_info,
-                vk::SubpassContents::INLINE,
-            );
-            
-            // Set viewport and scissor (do this once before the loop)
-            let viewport = vk::Viewport {
-                x: 0.0,
-                y: 0.0,
-                width: self.core.swapchain_extent.width as f32,
-                height: self.core.swapchain_extent.height as f32,
-                min_depth: 0.0,
-                max_depth: 1.0,
-            };
-            self.core.device.cmd_set_viewport(command_buffer, 0, &[viewport]);
-            
-            let scissor = vk::Rect2D {
-                offset: vk::Offset2D { x: 0, y: 0 },
-                extent: self.core.swapchain_extent,
-            };
-            self.core.device.cmd_set_scissor(command_buffer, 0, &[scissor]);
-            
-            // Track the currently bound pipeline to avoid redundant binds
-            let mut current_pipeline_name: Option<String> = None;
-            
-            // Render each mesh with its transforms
-            for (mesh_idx, mesh) in self.meshes.iter().enumerate() {
-                // Skip meshes with no transforms and non-instanced meshes with no instances
-                if !mesh.use_instancing && mesh.transforms.is_empty() {
-                    continue;
-                }
-                if mesh.use_instancing && mesh.instance_count == 0 {
-                    continue;
-                }
-                
-                // Determine which pipeline to use for this mesh
-                let actual_pipeline_name = mesh.pipeline_name.as_ref()
-                    .map(|s| s.as_str())
-                    .unwrap_or("default");
-                
-                // Debug log for colonist meshes
-                if actual_pipeline_name.contains("colonist") || mesh_idx == 50 {
-                    static mut COLONIST_LOG_COUNT: u32 = 0;
-                    COLONIST_LOG_COUNT += 1;
-                    if COLONIST_LOG_COUNT % 60 == 0 {
-                        println!("Rendering mesh {}: pipeline={}, is_skinned={}, instance_count={}, use_instancing={}", 
-                                 mesh_idx, actual_pipeline_name, mesh.is_skinned, mesh.instance_count, mesh.use_instancing);
-                    }
-                }
-                
-                // Switch pipeline if needed
-                if current_pipeline_name.as_deref() != Some(actual_pipeline_name) {
-                    let (pipeline, _pipeline_layout) = if let Some(pipeline_entry) = self.pipelines.get(actual_pipeline_name) {
-                        (pipeline_entry.pipeline, pipeline_entry.layout)
-                    } else {
-                        // Fallback to default pipeline
-                        println!("WARNING: Pipeline '{}' not found, using default", actual_pipeline_name);
-                        (self.graphics_pipeline, self.pipeline_layout)
-                    };
-                    
-                    self.core.device.cmd_bind_pipeline(
-                        command_buffer,
-                        vk::PipelineBindPoint::GRAPHICS,
-                        pipeline,
-                    );
-                    
-                    current_pipeline_name = Some(actual_pipeline_name.to_string());
-                }
-                
-                // Get the current pipeline layout for push constants
-                let pipeline_layout = if let Some(pipeline_entry) = self.pipelines.get(actual_pipeline_name) {
-                    pipeline_entry.layout
-                } else {
-                    self.pipeline_layout
-                };
-                
-                // Check if using GPU instancing
-                if mesh.use_instancing {
-                    // TRUE GPU INSTANCING PATH
-                    
-                    // Bind vertex buffer at binding 0
-                    self.core.device.cmd_bind_vertex_buffers(
-                        command_buffer,
-                        0,
-                        &[mesh.vertex_buffer],
-                        &[0],
-                    );
-                    
-                    // Bind instance buffer at binding 1 if available
-                    if let Some(instance_buffer) = mesh.instance_buffer {
-                        self.core.device.cmd_bind_vertex_buffers(
-                            command_buffer,
-                            1,
-                            &[instance_buffer],
-                            &[0],
-                        );
-                    }
-                    
-                    // Bind index buffer
-                    self.core.device.cmd_bind_index_buffer(
-                        command_buffer,
-                        mesh.index_buffer,
-                        0,
-                        vk::IndexType::UINT32,
-                    );
-                    
-                    // Bind descriptor sets if available
-                    // For skinned meshes, bind the skinned descriptor sets
-                    if mesh.is_skinned {
-                        // Debug log for skinned mesh descriptor binding
-                        if actual_pipeline_name.contains("colonist") {
-                            static mut SKINNED_LOG_COUNT: u32 = 0;
-                            SKINNED_LOG_COUNT += 1;
-                            if SKINNED_LOG_COUNT % 60 == 0 {
-                                println!("Binding skinned descriptors for mesh {}: has_sets={}, has_camera_buffer={}", 
-                                         mesh_idx, 
-                                         mesh.skinned_descriptor_sets.is_some(),
-                                         mesh.camera_uniform_memory.is_some());
-                            }
-                        }
-                        
-                        // Update camera uniform buffer with current view/proj matrices
-                        if let Some(camera_buffer_memory) = mesh.camera_uniform_memory {
-                            let camera_uniforms = CameraUniforms {
-                                view: view.to_cols_array(),
-                                proj: proj.to_cols_array(),
-                            };
-                            
-                            if let Ok(data) = self.core.device.map_memory(
-                                    camera_buffer_memory,
-                                    0,
-                                    std::mem::size_of::<CameraUniforms>() as u64,
-                                    vk::MemoryMapFlags::empty(),
-                                ) {
-                                    std::ptr::copy_nonoverlapping(
-                                        &camera_uniforms as *const _ as *const u8,
-                                        data as *mut u8,
-                                        std::mem::size_of::<CameraUniforms>(),
-                                    );
-                                    self.core.device.unmap_memory(camera_buffer_memory);
-                                } else {
-                                    eprintln!("Failed to map camera buffer memory");
-                                }
-                        }
-                        
-                        if let Some(ref descriptor_sets) = mesh.skinned_descriptor_sets {
-                            if descriptor_sets.len() > image_index as usize {
-                                self.core.device.cmd_bind_descriptor_sets(
-                                    command_buffer,
-                                    vk::PipelineBindPoint::GRAPHICS,
-                                    pipeline_layout,
-                                    0,
-                                    &descriptor_sets[image_index as usize..=image_index as usize],
-                                    &[],
-                                );
-                            }
-                        }
-                    } else if let Some(ref textures) = mesh.texture_resources {
-                        self.core.device.cmd_bind_descriptor_sets(
-                            command_buffer,
-                            vk::PipelineBindPoint::GRAPHICS,
-                            pipeline_layout,
-                            0,
-                            &textures.descriptor_sets[image_index as usize..=image_index as usize],
-                            &[],
-                        );
-                    } else if let Some(ref textures) = self.textures {
-                        self.core.device.cmd_bind_descriptor_sets(
-                            command_buffer,
-                            vk::PipelineBindPoint::GRAPHICS,
-                            pipeline_layout,
-                            0,
-                            &textures.descriptor_sets[image_index as usize..=image_index as usize],
-                            &[],
-                        );
-                    }
-                    
-                    // Set push constants based on whether this is a skinned mesh
-                    if mesh.is_skinned {
-                        // Skinned shaders only expect time as push constant
-                        let push_data = self.core.start_time.elapsed().as_secs_f32();
-                        self.core.device.cmd_push_constants(
-                            command_buffer,
-                            pipeline_layout,
-                            vk::ShaderStageFlags::VERTEX,
-                            0,
-                            std::slice::from_raw_parts(&push_data as *const f32 as *const u8, 4),
-                        );
-                    } else {
-                        // Regular meshes use MVP push constants
-                        let mvp = MvpPushConstants {
-                            model: Mat4::IDENTITY.to_cols_array(),  // Model matrix handled by instance data
-                            view: view.to_cols_array(),
-                            proj: proj.to_cols_array(),
-                            base_color: mesh.base_color,
-                        };
-                        
-                        let push_bytes = bytemuck::bytes_of(&mvp);
-                        
-                        self.core.device.cmd_push_constants(
-                            command_buffer,
-                            pipeline_layout,
-                            vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
-                            0,
-                            push_bytes,
-                        );
-                    }
-                    
-                    // Debug log draw call for colonist meshes
-                    if actual_pipeline_name.contains("colonist") && mesh.use_instancing {
-                        static mut DRAW_LOG_COUNT: u32 = 0;
-                        DRAW_LOG_COUNT += 1;
-                        if DRAW_LOG_COUNT % 60 == 0 {
-                            println!("Drawing colonist mesh {}: index_count={}, instance_count={}, vertex_count={}", 
-                                     mesh_idx, mesh.index_count, mesh.instance_count,
-                                     mesh.index_count / 3); // Approximate vertex count
-                            println!("  Using pipeline: {}", actual_pipeline_name);
-                            println!("  Is skinned: {}", mesh.is_skinned);
-                            println!("  Has descriptor sets: {}", mesh.skinned_descriptor_sets.is_some());
-                        }
-                    }
-                    
-                    // SINGLE DRAW CALL FOR ALL INSTANCES!
-                    self.core.device.cmd_draw_indexed(
-                        command_buffer,
-                        mesh.index_count,
-                        mesh.instance_count,  // Draw all instances in one call!
-                        0,
-                        0,
-                        0,
-                    );
-                } else {
-                    // INDIVIDUAL DRAW CALLS PATH (old behavior)
-                    
-                    // Bind vertex buffer
-                    self.core.device.cmd_bind_vertex_buffers(
-                        command_buffer,
-                        0,
-                        &[mesh.vertex_buffer],
-                        &[0],
-                    );
-                    
-                    // Bind index buffer
-                    self.core.device.cmd_bind_index_buffer(
-                        command_buffer,
-                        mesh.index_buffer,
-                        0,
-                        vk::IndexType::UINT32,
-                    );
-                    
-                    // Bind descriptor sets if available
-                    // For skinned meshes, bind the skinned descriptor sets
-                    if mesh.is_skinned {
-                        if let Some(ref descriptor_sets) = mesh.skinned_descriptor_sets {
-                            self.core.device.cmd_bind_descriptor_sets(
-                                command_buffer,
-                                vk::PipelineBindPoint::GRAPHICS,
-                                pipeline_layout,
-                                0,
-                                &descriptor_sets[image_index as usize..=image_index as usize],
-                                &[],
-                            );
-                        }
-                    } else if let Some(ref textures) = mesh.texture_resources {
-                        self.core.device.cmd_bind_descriptor_sets(
-                            command_buffer,
-                            vk::PipelineBindPoint::GRAPHICS,
-                            pipeline_layout,
-                            0,
-                            &textures.descriptor_sets[image_index as usize..=image_index as usize],
-                            &[],
-                        );
-                    } else if let Some(ref textures) = self.textures {
-                        self.core.device.cmd_bind_descriptor_sets(
-                            command_buffer,
-                            vk::PipelineBindPoint::GRAPHICS,
-                            pipeline_layout,
-                            0,
-                            &textures.descriptor_sets[image_index as usize..=image_index as usize],
-                            &[],
-                        );
-                    }
-                    
-                    // Draw each instance with its transform
-                    for transform in &mesh.transforms {
-                        let mvp = MvpPushConstants {
-                            model: transform.to_cols_array(),
-                            view: view.to_cols_array(),
-                            proj: proj.to_cols_array(),
-                            base_color: mesh.base_color,
-                        };
-                        
-                        let push_bytes = bytemuck::bytes_of(&mvp);
-                        
-                        self.core.device.cmd_push_constants(
-                            command_buffer,
-                            pipeline_layout,
-                            vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
-                            0,
-                            push_bytes,
-                        );
-                        
-                        // Draw indexed
-                        self.core.device.cmd_draw_indexed(
-                            command_buffer,
-                            mesh.index_count,
-                            1,
-                            0,
-                            0,
-                            0,
-                        );
-                    }
-                }
-            }
-            
-            // Fallback: render using the old buffers if meshes are empty but buffers exist
-            if self.meshes.is_empty() && self.buffers.is_some() {
-                // Use the old hardcoded model for backwards compatibility
-                let model = Mat4::from_translation(Vec3::new(0.0, 0.0, -2.0)) * 
-                            Mat4::from_scale(Vec3::splat(0.5));
-                let mvp = MvpPushConstants {
-                    model: model.to_cols_array(),
-                    view: view.to_cols_array(),
-                    proj: proj.to_cols_array(),
-                    base_color: [1.0, 1.0, 1.0, 1.0], // Default white for legacy path
-                };
-                
-                if let Some(ref buffers) = self.buffers {
-                    self.core.device.cmd_bind_vertex_buffers(
-                        command_buffer,
-                        0,
-                        &[buffers.vertex_buffer],
-                        &[0],
-                    );
-                    
-                    if let Some(index_buffer) = buffers.index_buffer {
-                        self.core.device.cmd_bind_index_buffer(
-                            command_buffer,
-                            index_buffer,
-                            0,
-                            vk::IndexType::UINT32,
-                        );
-                        
-                        let push_bytes = bytemuck::bytes_of(&mvp);
-                        self.core.device.cmd_push_constants(
-                            command_buffer,
-                            self.pipeline_layout,
-                            vk::ShaderStageFlags::VERTEX,
-                            0,
-                            push_bytes,
-                        );
-                        
-                        self.core.device.cmd_draw_indexed(
-                            command_buffer,
-                            buffers.index_count,
-                            self.instance_count.max(1),
-                            0,
-                            0,
-                            0,
-                        );
-                    }
-                }
-            }
-            
-            // Render egui if provided
-            if let Some(egui_output) = egui_output {
-                if let Some(ref mut egui_integration) = self.egui_integration {
-                    // Update textures before rendering
-                    if !egui_output.textures_delta.set.is_empty() {
-                        if let Err(e) = egui_integration.renderer.set_textures(
-                            self.core.graphics_queue,
-                            self.core.command_pool,
-                            egui_output.textures_delta.set.as_slice(),
-                        ) {
-                            eprintln!("Failed to set egui textures: {}", e);
-                        }
-                    }
-                    
-                    let clipped_primitives = egui_integration.context.tessellate(
-                        egui_output.shapes,
-                        egui_output.pixels_per_point,
-                    );
-                    
-                    if let Err(e) = egui_integration.renderer.cmd_draw(
-                        command_buffer,
-                        self.core.swapchain_extent,
-                        egui_output.pixels_per_point,
-                        &clipped_primitives,
-                    ) {
-                        eprintln!("Failed to render egui: {}", e);
-                    }
-                    
-                    // Free removed textures
-                    if !egui_output.textures_delta.free.is_empty() {
-                        if let Err(e) = egui_integration.renderer.free_textures(&egui_output.textures_delta.free) {
-                            eprintln!("Failed to free egui textures: {}", e);
-                        }
-                    }
-                }
-            }
-            
-            self.core.device.cmd_end_render_pass(command_buffer);
-            
-            self.core.device
-                .end_command_buffer(command_buffer)
-                .expect("Failed to end command buffer");
-        }
-    }
+    // fn record_command_buffer_multi_mesh_with_egui(&mut self, image_index: u32, view: Mat4, proj: Mat4, egui_output: Option<egui::FullOutput>) {
+    //     let command_buffer = self.core.command_buffers[image_index as usize];
+    //     let framebuffer = self.core.framebuffers[image_index as usize];
+    //
+    //     unsafe {
+    //         let begin_info = vk::CommandBufferBeginInfo::default();
+    //
+    //         self.core.device
+    //             .begin_command_buffer(command_buffer, &begin_info)
+    //             .expect("Failed to begin command buffer");
+    //
+    //         // Begin render pass
+    //         let clear_values = [
+    //             vk::ClearValue {
+    //                 color: vk::ClearColorValue {
+    //                     float32: CLEAR_COLOR_MAGENTA,
+    //                 },
+    //             },
+    //             vk::ClearValue {
+    //                 depth_stencil: vk::ClearDepthStencilValue {
+    //                     depth: 1.0,
+    //                     stencil: 0,
+    //                 },
+    //             },
+    //         ];
+    //
+    //         let render_pass_info = vk::RenderPassBeginInfo::default()
+    //             .render_pass(self.core.render_pass)
+    //             .framebuffer(framebuffer)
+    //             .render_area(vk::Rect2D {
+    //                 offset: vk::Offset2D { x: 0, y: 0 },
+    //                 extent: self.core.swapchain_extent,
+    //             })
+    //             .clear_values(&clear_values);
+    //
+    //         self.core.device.cmd_begin_render_pass(
+    //             command_buffer,
+    //             &render_pass_info,
+    //             vk::SubpassContents::INLINE,
+    //         );
+    //
+    //         // Set viewport and scissor (do this once before the loop)
+    //         let viewport = vk::Viewport {
+    //             x: 0.0,
+    //             y: 0.0,
+    //             width: self.core.swapchain_extent.width as f32,
+    //             height: self.core.swapchain_extent.height as f32,
+    //             min_depth: 0.0,
+    //             max_depth: 1.0,
+    //         };
+    //         self.core.device.cmd_set_viewport(command_buffer, 0, &[viewport]);
+    //
+    //         let scissor = vk::Rect2D {
+    //             offset: vk::Offset2D { x: 0, y: 0 },
+    //             extent: self.core.swapchain_extent,
+    //         };
+    //         self.core.device.cmd_set_scissor(command_buffer, 0, &[scissor]);
+    //
+    //         // Track the currently bound pipeline to avoid redundant binds
+    //         let mut current_pipeline_name: Option<String> = None;
+    //
+    //         // Render each mesh with its transforms
+    //         for (mesh_idx, mesh) in self.meshes.iter().enumerate() {
+    //             // Skip meshes with no transforms and non-instanced meshes with no instances
+    //             if !mesh.use_instancing && mesh.transforms.is_empty() {
+    //                 continue;
+    //             }
+    //             if mesh.use_instancing && mesh.instance_count == 0 {
+    //                 continue;
+    //             }
+    //
+    //             // Determine which pipeline to use for this mesh
+    //             let actual_pipeline_name = mesh.pipeline_name.as_ref()
+    //                 .map(|s| s.as_str())
+    //                 .unwrap_or("default");
+    //
+    //             // Debug log for colonist meshes
+    //             if actual_pipeline_name.contains("colonist") || mesh_idx == 50 {
+    //                 static mut COLONIST_LOG_COUNT: u32 = 0;
+    //                 COLONIST_LOG_COUNT += 1;
+    //                 if COLONIST_LOG_COUNT % 60 == 0 {
+    //                     println!("Rendering mesh {}: pipeline={}, is_skinned={}, instance_count={}, use_instancing={}", 
+    //                              mesh_idx, actual_pipeline_name, mesh.is_skinned, mesh.instance_count, mesh.use_instancing);
+    //                 }
+    //             }
+    //
+    //             // Switch pipeline if needed
+    //             if current_pipeline_name.as_deref() != Some(actual_pipeline_name) {
+    //                 let (pipeline, _pipeline_layout) = if let Some(pipeline_entry) = self.pipelines.get(actual_pipeline_name) {
+    //                     (pipeline_entry.pipeline, pipeline_entry.layout)
+    //                 } else {
+    //                     // Fallback to default pipeline
+    //                     println!("WARNING: Pipeline '{}' not found, using default", actual_pipeline_name);
+    //                     (self.graphics_pipeline, self.pipeline_layout)
+    //                 };
+    //
+    //                 self.core.device.cmd_bind_pipeline(
+    //                     command_buffer,
+    //                     vk::PipelineBindPoint::GRAPHICS,
+    //                     pipeline,
+    //                 );
+    //
+    //                 current_pipeline_name = Some(actual_pipeline_name.to_string());
+    //             }
+    //
+    //             // Get the current pipeline layout for push constants
+    //             let pipeline_layout = if let Some(pipeline_entry) = self.pipelines.get(actual_pipeline_name) {
+    //                 pipeline_entry.layout
+    //             } else {
+    //                 self.pipeline_layout
+    //             };
+    //
+    //             // Check if using GPU instancing
+    //             if mesh.use_instancing {
+    //                 // TRUE GPU INSTANCING PATH
+    //
+    //                 // Bind vertex buffer at binding 0
+    //                 self.core.device.cmd_bind_vertex_buffers(
+    //                     command_buffer,
+    //                     0,
+    //                     &[mesh.vertex_buffer],
+    //                     &[0],
+    //                 );
+    //
+    //                 // Bind instance buffer at binding 1 if available
+    //                 if let Some(instance_buffer) = mesh.instance_buffer {
+    //                     self.core.device.cmd_bind_vertex_buffers(
+    //                         command_buffer,
+    //                         1,
+    //                         &[instance_buffer],
+    //                         &[0],
+    //                     );
+    //                 }
+    //
+    //                 // Bind index buffer
+    //                 self.core.device.cmd_bind_index_buffer(
+    //                     command_buffer,
+    //                     mesh.index_buffer,
+    //                     0,
+    //                     vk::IndexType::UINT32,
+    //                 );
+    //
+    //                 // Bind descriptor sets if available
+    //                 // For skinned meshes, bind the skinned descriptor sets
+    //                 if mesh.is_skinned {
+    //                     // Debug log for skinned mesh descriptor binding
+    //                     if actual_pipeline_name.contains("colonist") {
+    //                         static mut SKINNED_LOG_COUNT: u32 = 0;
+    //                         SKINNED_LOG_COUNT += 1;
+    //                         if SKINNED_LOG_COUNT % 60 == 0 {
+    //                             println!("Binding skinned descriptors for mesh {}: has_sets={}, has_camera_buffer={}", 
+    //                                      mesh_idx, 
+    //                                      mesh.skinned_descriptor_sets.is_some(),
+    //                                      mesh.camera_uniform_memory.is_some());
+    //                         }
+    //                     }
+    //
+    //                     // Update camera uniform buffer with current view/proj matrices
+    //                     if let Some(camera_buffer_memory) = mesh.camera_uniform_memory {
+    //                         let camera_uniforms = CameraUniforms {
+    //                             view: view.to_cols_array(),
+    //                             proj: proj.to_cols_array(),
+    //                         };
+    //
+    //                         if let Ok(data) = self.core.device.map_memory(
+    //                                 camera_buffer_memory,
+    //                                 0,
+    //                                 std::mem::size_of::<CameraUniforms>() as u64,
+    //                                 vk::MemoryMapFlags::empty(),
+    //                             ) {
+    //                                 std::ptr::copy_nonoverlapping(
+    //                                     &camera_uniforms as *const _ as *const u8,
+    //                                     data as *mut u8,
+    //                                     std::mem::size_of::<CameraUniforms>(),
+    //                                 );
+    //                                 self.core.device.unmap_memory(camera_buffer_memory);
+    //                             } else {
+    //                                 eprintln!("Failed to map camera buffer memory");
+    //                             }
+    //                     }
+    //
+    //                     if let Some(ref descriptor_sets) = mesh.skinned_descriptor_sets {
+    //                         if descriptor_sets.len() > image_index as usize {
+    //                             self.core.device.cmd_bind_descriptor_sets(
+    //                                 command_buffer,
+    //                                 vk::PipelineBindPoint::GRAPHICS,
+    //                                 pipeline_layout,
+    //                                 0,
+    //                                 &descriptor_sets[image_index as usize..=image_index as usize],
+    //                                 &[],
+    //                             );
+    //                         }
+    //                     }
+    //                 } else if let Some(ref textures) = mesh.texture_resources {
+    //                     self.core.device.cmd_bind_descriptor_sets(
+    //                         command_buffer,
+    //                         vk::PipelineBindPoint::GRAPHICS,
+    //                         pipeline_layout,
+    //                         0,
+    //                         &textures.descriptor_sets[image_index as usize..=image_index as usize],
+    //                         &[],
+    //                     );
+    //                 } else if let Some(ref textures) = self.textures {
+    //                     self.core.device.cmd_bind_descriptor_sets(
+    //                         command_buffer,
+    //                         vk::PipelineBindPoint::GRAPHICS,
+    //                         pipeline_layout,
+    //                         0,
+    //                         &textures.descriptor_sets[image_index as usize..=image_index as usize],
+    //                         &[],
+    //                     );
+    //                 }
+    //
+    //                 // Set push constants based on whether this is a skinned mesh
+    //                 if mesh.is_skinned {
+    //                     // Skinned shaders only expect time as push constant
+    //                     let push_data = self.core.start_time.elapsed().as_secs_f32();
+    //                     self.core.device.cmd_push_constants(
+    //                         command_buffer,
+    //                         pipeline_layout,
+    //                         vk::ShaderStageFlags::VERTEX,
+    //                         0,
+    //                         std::slice::from_raw_parts(&push_data as *const f32 as *const u8, 4),
+    //                     );
+    //                 } else {
+    //                     // Regular meshes use MVP push constants
+    //                     let mvp = MvpPushConstants {
+    //                         model: Mat4::IDENTITY.to_cols_array(),  // Model matrix handled by instance data
+    //                         view: view.to_cols_array(),
+    //                         proj: proj.to_cols_array(),
+    //                         base_color: mesh.base_color,
+    //                     };
+    //
+    //                     let push_bytes = bytemuck::bytes_of(&mvp);
+    //
+    //                     self.core.device.cmd_push_constants(
+    //                         command_buffer,
+    //                         pipeline_layout,
+    //                         vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+    //                         0,
+    //                         push_bytes,
+    //                     );
+    //                 }
+    //
+    //                 // Debug log draw call for colonist meshes
+    //                 if actual_pipeline_name.contains("colonist") && mesh.use_instancing {
+    //                     static mut DRAW_LOG_COUNT: u32 = 0;
+    //                     DRAW_LOG_COUNT += 1;
+    //                     if DRAW_LOG_COUNT % 60 == 0 {
+    //                         println!("Drawing colonist mesh {}: index_count={}, instance_count={}, vertex_count={}", 
+    //                                  mesh_idx, mesh.index_count, mesh.instance_count,
+    //                                  mesh.index_count / 3); // Approximate vertex count
+    //                         println!("  Using pipeline: {}", actual_pipeline_name);
+    //                         println!("  Is skinned: {}", mesh.is_skinned);
+    //                         println!("  Has descriptor sets: {}", mesh.skinned_descriptor_sets.is_some());
+    //                     }
+    //                 }
+    //
+    //                 // SINGLE DRAW CALL FOR ALL INSTANCES!
+    //                 self.core.device.cmd_draw_indexed(
+    //                     command_buffer,
+    //                     mesh.index_count,
+    //                     mesh.instance_count,  // Draw all instances in one call!
+    //                     0,
+    //                     0,
+    //                     0,
+    //                 );
+    //             } else {
+    //                 // INDIVIDUAL DRAW CALLS PATH (old behavior)
+    //
+    //                 // Bind vertex buffer
+    //                 self.core.device.cmd_bind_vertex_buffers(
+    //                     command_buffer,
+    //                     0,
+    //                     &[mesh.vertex_buffer],
+    //                     &[0],
+    //                 );
+    //
+    //                 // Bind index buffer
+    //                 self.core.device.cmd_bind_index_buffer(
+    //                     command_buffer,
+    //                     mesh.index_buffer,
+    //                     0,
+    //                     vk::IndexType::UINT32,
+    //                 );
+    //
+    //                 // Bind descriptor sets if available
+    //                 // For skinned meshes, bind the skinned descriptor sets
+    //                 if mesh.is_skinned {
+    //                     if let Some(ref descriptor_sets) = mesh.skinned_descriptor_sets {
+    //                         self.core.device.cmd_bind_descriptor_sets(
+    //                             command_buffer,
+    //                             vk::PipelineBindPoint::GRAPHICS,
+    //                             pipeline_layout,
+    //                             0,
+    //                             &descriptor_sets[image_index as usize..=image_index as usize],
+    //                             &[],
+    //                         );
+    //                     }
+    //                 } else if let Some(ref textures) = mesh.texture_resources {
+    //                     self.core.device.cmd_bind_descriptor_sets(
+    //                         command_buffer,
+    //                         vk::PipelineBindPoint::GRAPHICS,
+    //                         pipeline_layout,
+    //                         0,
+    //                         &textures.descriptor_sets[image_index as usize..=image_index as usize],
+    //                         &[],
+    //                     );
+    //                 } else if let Some(ref textures) = self.textures {
+    //                     self.core.device.cmd_bind_descriptor_sets(
+    //                         command_buffer,
+    //                         vk::PipelineBindPoint::GRAPHICS,
+    //                         pipeline_layout,
+    //                         0,
+    //                         &textures.descriptor_sets[image_index as usize..=image_index as usize],
+    //                         &[],
+    //                     );
+    //                 }
+    //
+    //                 // Draw each instance with its transform
+    //                 for transform in &mesh.transforms {
+    //                     let mvp = MvpPushConstants {
+    //                         model: transform.to_cols_array(),
+    //                         view: view.to_cols_array(),
+    //                         proj: proj.to_cols_array(),
+    //                         base_color: mesh.base_color,
+    //                     };
+    //
+    //                     let push_bytes = bytemuck::bytes_of(&mvp);
+    //
+    //                     self.core.device.cmd_push_constants(
+    //                         command_buffer,
+    //                         pipeline_layout,
+    //                         vk::ShaderStageFlags::VERTEX | vk::ShaderStageFlags::FRAGMENT,
+    //                         0,
+    //                         push_bytes,
+    //                     );
+    //
+    //                     // Draw indexed
+    //                     self.core.device.cmd_draw_indexed(
+    //                         command_buffer,
+    //                         mesh.index_count,
+    //                         1,
+    //                         0,
+    //                         0,
+    //                         0,
+    //                     );
+    //                 }
+    //             }
+    //         }
+    //
+    //         // Fallback: render using the old buffers if meshes are empty but buffers exist
+    //         if self.meshes.is_empty() && self.buffers.is_some() {
+    //             // Use the old hardcoded model for backwards compatibility
+    //             let model = Mat4::from_translation(Vec3::new(0.0, 0.0, -2.0)) * 
+    //                         Mat4::from_scale(Vec3::splat(0.5));
+    //             let mvp = MvpPushConstants {
+    //                 model: model.to_cols_array(),
+    //                 view: view.to_cols_array(),
+    //                 proj: proj.to_cols_array(),
+    //                 base_color: [1.0, 1.0, 1.0, 1.0], // Default white for legacy path
+    //             };
+    //
+    //             if let Some(ref buffers) = self.buffers {
+    //                 self.core.device.cmd_bind_vertex_buffers(
+    //                     command_buffer,
+    //                     0,
+    //                     &[buffers.vertex_buffer],
+    //                     &[0],
+    //                 );
+    //
+    //                 if let Some(index_buffer) = buffers.index_buffer {
+    //                     self.core.device.cmd_bind_index_buffer(
+    //                         command_buffer,
+    //                         index_buffer,
+    //                         0,
+    //                         vk::IndexType::UINT32,
+    //                     );
+    //
+    //                     let push_bytes = bytemuck::bytes_of(&mvp);
+    //                     self.core.device.cmd_push_constants(
+    //                         command_buffer,
+    //                         self.pipeline_layout,
+    //                         vk::ShaderStageFlags::VERTEX,
+    //                         0,
+    //                         push_bytes,
+    //                     );
+    //
+    //                     self.core.device.cmd_draw_indexed(
+    //                         command_buffer,
+    //                         buffers.index_count,
+    //                         self.instance_count.max(1),
+    //                         0,
+    //                         0,
+    //                         0,
+    //                     );
+    //                 }
+    //             }
+    //         }
+    //
+    //         // Render egui if provided
+    //         if let Some(egui_output) = egui_output {
+    //             if let Some(ref mut egui_integration) = self.egui_integration {
+    //                 // Update textures before rendering
+    //                 if !egui_output.textures_delta.set.is_empty() {
+    //                     if let Err(e) = egui_integration.renderer.set_textures(
+    //                         self.core.graphics_queue,
+    //                         self.core.command_pool,
+    //                         egui_output.textures_delta.set.as_slice(),
+    //                     ) {
+    //                         eprintln!("Failed to set egui textures: {}", e);
+    //                     }
+    //                 }
+    //
+    //                 let clipped_primitives = egui_integration.context.tessellate(
+    //                     egui_output.shapes,
+    //                     egui_output.pixels_per_point,
+    //                 );
+    //
+    //                 if let Err(e) = egui_integration.renderer.cmd_draw(
+    //                     command_buffer,
+    //                     self.core.swapchain_extent,
+    //                     egui_output.pixels_per_point,
+    //                     &clipped_primitives,
+    //                 ) {
+    //                     eprintln!("Failed to render egui: {}", e);
+    //                 }
+    //
+    //                 // Free removed textures
+    //                 if !egui_output.textures_delta.free.is_empty() {
+    //                     if let Err(e) = egui_integration.renderer.free_textures(&egui_output.textures_delta.free) {
+    //                         eprintln!("Failed to free egui textures: {}", e);
+    //                     }
+    //                 }
+    //             }
+    //         }
+    //
+    //         self.core.device.cmd_end_render_pass(command_buffer);
+    //
+    //         self.core.device
+    //             .end_command_buffer(command_buffer)
+    //             .expect("Failed to end command buffer");
+    //     }
+    // }
     
-    fn record_command_buffer_with_push_data_and_egui(&mut self, image_index: u32, view: Mat4, proj: Mat4, egui_output: Option<egui::FullOutput>) {
-        let command_buffer = self.core.command_buffers[image_index as usize];
-        let framebuffer = self.core.framebuffers[image_index as usize];
-        
-        // Use identity model matrix - let the view and proj matrices handle positioning
-        let model = Mat4::IDENTITY;
-        let mvp = MvpPushConstants {
-            model: model.to_cols_array(),
-            view: view.to_cols_array(),
-            proj: proj.to_cols_array(),
-            base_color: [1.0, 1.0, 1.0, 1.0], // Default white
-        };
-        
-        let mut config = RenderConfig::default();
-        config.clear_color = CLEAR_COLOR_MAGENTA;
-        
-        // Set resources
-        if let Some(ref buffers) = self.buffers {
-            config.vertex_buffer = Some(buffers.vertex_buffer);
-            
-            if let Some(index_buffer) = buffers.index_buffer {
-                config.index_buffer = Some(index_buffer);
-                
-                if self.instance_count > 1 {
-                    config.draw_mode = DrawMode::IndexedInstanced {
-                        index_count: buffers.index_count,
-                        instance_count: self.instance_count,
-                    };
-                } else {
-                    config.draw_mode = DrawMode::Indexed {
-                        index_count: buffers.index_count,
-                    };
-                }
-            }
-        }
-        
-        if let Some(ref textures) = self.textures {
-            config.descriptor_sets = &textures.descriptor_sets[image_index as usize..=image_index as usize];
-        }
-        
-        // Set push constants
-        let mvp_array = [mvp];
-        let push_bytes = bytemuck::cast_slice(&mvp_array);
-        config.push_constant_data = Some(push_bytes);
-        
-        // Record commands with egui support
-        unsafe {
-            let begin_info = vk::CommandBufferBeginInfo::default();
-            
-            self.core.device
-                .begin_command_buffer(command_buffer, &begin_info)
-                .expect("Failed to begin recording command buffer");
-            
-            let mut clear_values = vec![
-                vk::ClearValue {
-                    color: vk::ClearColorValue {
-                        float32: config.clear_color,
-                    },
-                },
-            ];
-            
-            if self.has_depth {
-                clear_values.push(vk::ClearValue {
-                    depth_stencil: vk::ClearDepthStencilValue {
-                        depth: 1.0,
-                        stencil: 0,
-                    },
-                });
-            }
-            
-            let render_pass_info = vk::RenderPassBeginInfo::default()
-                .render_pass(self.core.render_pass)
-                .framebuffer(framebuffer)
-                .render_area(vk::Rect2D {
-                    offset: vk::Offset2D { x: 0, y: 0 },
-                    extent: self.core.swapchain_extent,
-                })
-                .clear_values(&clear_values);
-            
-            self.core.device.cmd_begin_render_pass(command_buffer, &render_pass_info, vk::SubpassContents::INLINE);
-            
-            // Draw main geometry
-            if self.graphics_pipeline != vk::Pipeline::null() {
-                self.core.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.graphics_pipeline);
-                
-                // Bind descriptor sets if available
-                if !config.descriptor_sets.is_empty() {
-                    self.core.device.cmd_bind_descriptor_sets(
-                        command_buffer,
-                        vk::PipelineBindPoint::GRAPHICS,
-                        self.pipeline_layout,
-                        0,
-                        config.descriptor_sets,
-                        &[],
-                    );
-                }
-                
-                // Push constants
-                if let Some(push_data) = config.push_constant_data {
-                    self.core.device.cmd_push_constants(
-                        command_buffer,
-                        self.pipeline_layout,
-                        vk::ShaderStageFlags::VERTEX,
-                        0,
-                        push_data,
-                    );
-                }
-                
-                // Bind vertex buffer
-                if let Some(vertex_buffer) = config.vertex_buffer {
-                    self.core.device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &[0]);
-                }
-                
-                // Draw based on mode
-                match config.draw_mode {
-                    DrawMode::Indexed { index_count } => {
-                        if let Some(index_buffer) = config.index_buffer {
-                            self.core.device.cmd_bind_index_buffer(
-                                command_buffer,
-                                index_buffer,
-                                0,
-                                vk::IndexType::UINT32,
-                            );
-                            self.core.device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0);
-                        }
-                    }
-                    DrawMode::IndexedInstanced { index_count, instance_count } => {
-                        if let Some(index_buffer) = config.index_buffer {
-                            self.core.device.cmd_bind_index_buffer(
-                                command_buffer,
-                                index_buffer,
-                                0,
-                                vk::IndexType::UINT32,
-                            );
-                            self.core.device.cmd_draw_indexed(command_buffer, index_count, instance_count, 0, 0, 0);
-                        }
-                    }
-                    _ => {}
-                }
-            }
-            
-            // Draw egui if output is provided
-            if let (Some(egui_integration), Some(output)) = (&mut self.egui_integration, egui_output) {
-                // Paint egui inside the render pass
-                if let Err(e) = egui_integration.paint(
-                    command_buffer,
-                    self.core.swapchain_extent,
-                    output,
-                ) {
-                    eprintln!("Failed to paint egui: {}", e);
-                }
-            }
-            
-            self.core.device.cmd_end_render_pass(command_buffer);
-            
-            self.core.device
-                .end_command_buffer(command_buffer)
-                .expect("Failed to record command buffer");
-        }
-    }
+    // fn record_command_buffer_with_push_data_and_egui(&mut self, image_index: u32, view: Mat4, proj: Mat4, egui_output: Option<egui::FullOutput>) {
+    //     let command_buffer = self.core.command_buffers[image_index as usize];
+    //     let framebuffer = self.core.framebuffers[image_index as usize];
+    //
+    //     // Use identity model matrix - let the view and proj matrices handle positioning
+    //     let model = Mat4::IDENTITY;
+    //     let mvp = MvpPushConstants {
+    //         model: model.to_cols_array(),
+    //         view: view.to_cols_array(),
+    //         proj: proj.to_cols_array(),
+    //         base_color: [1.0, 1.0, 1.0, 1.0], // Default white
+    //     };
+    //
+    //     let mut config = RenderConfig::default();
+    //     config.clear_color = CLEAR_COLOR_MAGENTA;
+    //
+    //     // Set resources
+    //     if let Some(ref buffers) = self.buffers {
+    //         config.vertex_buffer = Some(buffers.vertex_buffer);
+    //
+    //         if let Some(index_buffer) = buffers.index_buffer {
+    //             config.index_buffer = Some(index_buffer);
+    //
+    //             if self.instance_count > 1 {
+    //                 config.draw_mode = DrawMode::IndexedInstanced {
+    //                     index_count: buffers.index_count,
+    //                     instance_count: self.instance_count,
+    //                 };
+    //             } else {
+    //                 config.draw_mode = DrawMode::Indexed {
+    //                     index_count: buffers.index_count,
+    //                 };
+    //             }
+    //         }
+    //     }
+    //
+    //     if let Some(ref textures) = self.textures {
+    //         config.descriptor_sets = &textures.descriptor_sets[image_index as usize..=image_index as usize];
+    //     }
+    //
+    //     // Set push constants
+    //     let mvp_array = [mvp];
+    //     let push_bytes = bytemuck::cast_slice(&mvp_array);
+    //     config.push_constant_data = Some(push_bytes);
+    //
+    //     // Record commands with egui support
+    //     unsafe {
+    //         let begin_info = vk::CommandBufferBeginInfo::default();
+    //
+    //         self.core.device
+    //             .begin_command_buffer(command_buffer, &begin_info)
+    //             .expect("Failed to begin recording command buffer");
+    //
+    //         let mut clear_values = vec![
+    //             vk::ClearValue {
+    //                 color: vk::ClearColorValue {
+    //                     float32: config.clear_color,
+    //                 },
+    //             },
+    //         ];
+    //
+    //         if self.has_depth {
+    //             clear_values.push(vk::ClearValue {
+    //                 depth_stencil: vk::ClearDepthStencilValue {
+    //                     depth: 1.0,
+    //                     stencil: 0,
+    //                 },
+    //             });
+    //         }
+    //
+    //         let render_pass_info = vk::RenderPassBeginInfo::default()
+    //             .render_pass(self.core.render_pass)
+    //             .framebuffer(framebuffer)
+    //             .render_area(vk::Rect2D {
+    //                 offset: vk::Offset2D { x: 0, y: 0 },
+    //                 extent: self.core.swapchain_extent,
+    //             })
+    //             .clear_values(&clear_values);
+    //
+    //         self.core.device.cmd_begin_render_pass(command_buffer, &render_pass_info, vk::SubpassContents::INLINE);
+    //
+    //         // Draw main geometry
+    //         if self.graphics_pipeline != vk::Pipeline::null() {
+    //             self.core.device.cmd_bind_pipeline(command_buffer, vk::PipelineBindPoint::GRAPHICS, self.graphics_pipeline);
+    //
+    //             // Bind descriptor sets if available
+    //             if !config.descriptor_sets.is_empty() {
+    //                 self.core.device.cmd_bind_descriptor_sets(
+    //                     command_buffer,
+    //                     vk::PipelineBindPoint::GRAPHICS,
+    //                     self.pipeline_layout,
+    //                     0,
+    //                     config.descriptor_sets,
+    //                     &[],
+    //                 );
+    //             }
+    //
+    //             // Push constants
+    //             if let Some(push_data) = config.push_constant_data {
+    //                 self.core.device.cmd_push_constants(
+    //                     command_buffer,
+    //                     self.pipeline_layout,
+    //                     vk::ShaderStageFlags::VERTEX,
+    //                     0,
+    //                     push_data,
+    //                 );
+    //             }
+    //
+    //             // Bind vertex buffer
+    //             if let Some(vertex_buffer) = config.vertex_buffer {
+    //                 self.core.device.cmd_bind_vertex_buffers(command_buffer, 0, &[vertex_buffer], &[0]);
+    //             }
+    //
+    //             // Draw based on mode
+    //             match config.draw_mode {
+    //                 DrawMode::Indexed { index_count } => {
+    //                     if let Some(index_buffer) = config.index_buffer {
+    //                         self.core.device.cmd_bind_index_buffer(
+    //                             command_buffer,
+    //                             index_buffer,
+    //                             0,
+    //                             vk::IndexType::UINT32,
+    //                         );
+    //                         self.core.device.cmd_draw_indexed(command_buffer, index_count, 1, 0, 0, 0);
+    //                     }
+    //                 }
+    //                 DrawMode::IndexedInstanced { index_count, instance_count } => {
+    //                     if let Some(index_buffer) = config.index_buffer {
+    //                         self.core.device.cmd_bind_index_buffer(
+    //                             command_buffer,
+    //                             index_buffer,
+    //                             0,
+    //                             vk::IndexType::UINT32,
+    //                         );
+    //                         self.core.device.cmd_draw_indexed(command_buffer, index_count, instance_count, 0, 0, 0);
+    //                     }
+    //                 }
+    //                 _ => {}
+    //             }
+    //         }
+    //
+    //         // Draw egui if output is provided
+    //         if let (Some(egui_integration), Some(output)) = (&mut self.egui_integration, egui_output) {
+    //             // Paint egui inside the render pass
+    //             if let Err(e) = egui_integration.paint(
+    //                 command_buffer,
+    //                 self.core.swapchain_extent,
+    //                 output,
+    //             ) {
+    //                 eprintln!("Failed to paint egui: {}", e);
+    //             }
+    //         }
+    //
+    //         self.core.device.cmd_end_render_pass(command_buffer);
+    //
+    //         self.core.device
+    //             .end_command_buffer(command_buffer)
+    //             .expect("Failed to record command buffer");
+    //     }
+    // }
     
     fn record_command_buffer_fluid(
         &self, 
@@ -4448,61 +4448,61 @@ impl VulkanRenderer {
         self.core.render_pass
     }
     
-    // Get egui context for UI code
-    pub fn get_egui_context(&mut self) -> Option<&egui::Context> {
-        self.egui_integration.as_ref().map(|i| &i.context)
-    }
+    // // Get egui context for UI code
+    // pub fn get_egui_context(&mut self) -> Option<&egui::Context> {
+    //     self.egui_integration.as_ref().map(|i| &i.context)
+    // }
     
-    // Initialize egui integration
-    pub fn initialize_egui(&mut self, render_pass: vk::RenderPass) -> Result<(), Box<dyn std::error::Error>> {
-        let egui_integration = EguiIntegration::new(
-            &self.core.instance,
-            self.core.physical_device,
-            self.core.device.clone(),
-            render_pass,
-            self.core.graphics_queue,
-            self.core.command_pool,
-        )?;
-        
-        self.egui_integration = Some(egui_integration);
-        Ok(())
-    }
+    // // Initialize egui integration
+    // pub fn initialize_egui(&mut self, render_pass: vk::RenderPass) -> Result<(), Box<dyn std::error::Error>> {
+    //     let egui_integration = EguiIntegration::new(
+    //         &self.core.instance,
+    //         self.core.physical_device,
+    //         self.core.device.clone(),
+    //         render_pass,
+    //         self.core.graphics_queue,
+    //         self.core.command_pool,
+    //     )?;
+    //
+    //     self.egui_integration = Some(egui_integration);
+    //     Ok(())
+    // }
     
     
-    // Render frame with egui support
-    pub fn render_frame_with_egui(
-        &mut self,
-        view: Mat4,
-        proj: Mat4,
-        egui_output: Option<egui::FullOutput>,
-    ) {
-        let image_index = match self.core.begin_frame() {
-            Ok(index) => index,
-            Err(e) => {
-                eprintln!("Failed to begin frame: {}", e);
-                return;
-            }
-        };
-        
-        // Check if we have meshes with transforms - if so, use multi-mesh rendering
-        if !self.meshes.is_empty() && self.meshes.iter().any(|m| !m.transforms.is_empty()) {
-            self.record_command_buffer_multi_mesh_with_egui(image_index, view, proj, egui_output);
-        } else {
-            // Use the old function for backwards compatibility
-            self.record_command_buffer_with_push_data_and_egui(image_index, view, proj, egui_output);
-        }
-        
-        if let Err(e) = self.core.end_frame(image_index) {
-            eprintln!("Failed to end frame: {}", e);
-        }
-    }
+    // // Render frame with egui support
+    // pub fn render_frame_with_egui(
+    //     &mut self,
+    //     view: Mat4,
+    //     proj: Mat4,
+    //     egui_output: Option<egui::FullOutput>,
+    // ) {
+    //     let image_index = match self.core.begin_frame() {
+    //         Ok(index) => index,
+    //         Err(e) => {
+    //             eprintln!("Failed to begin frame: {}", e);
+    //             return;
+    //         }
+    //     };
+    //
+    //     // Check if we have meshes with transforms - if so, use multi-mesh rendering
+    //     if !self.meshes.is_empty() && self.meshes.iter().any(|m| !m.transforms.is_empty()) {
+    //         self.record_command_buffer_multi_mesh_with_egui(image_index, view, proj, egui_output);
+    //     } else {
+    //         // Use the old function for backwards compatibility
+    //         self.record_command_buffer_with_push_data_and_egui(image_index, view, proj, egui_output);
+    //     }
+    //
+    //     if let Err(e) = self.core.end_frame(image_index) {
+    //         eprintln!("Failed to end frame: {}", e);
+    //     }
+    // }
     
-    // Update egui swapchain when window resizes
-    pub fn update_egui_swapchain(&mut self, width: u32, height: u32) {
-        if let Some(egui_integration) = &mut self.egui_integration {
-            egui_integration.update_swapchain(width, height);
-        }
-    }
+    // // Update egui swapchain when window resizes
+    // pub fn update_egui_swapchain(&mut self, width: u32, height: u32) {
+    //     if let Some(egui_integration) = &mut self.egui_integration {
+    //         egui_integration.update_swapchain(width, height);
+    //     }
+    // }
 }
 
 impl Drop for VulkanRenderer {
@@ -4510,10 +4510,10 @@ impl Drop for VulkanRenderer {
         unsafe {
             let _ = self.core.device.device_wait_idle();
             
-            // Clean up egui integration
-            if let Some(mut egui_integration) = self.egui_integration.take() {
-                egui_integration.cleanup();
-            }
+            // // Clean up egui integration
+            // if let Some(mut egui_integration) = self.egui_integration.take() {
+            //     egui_integration.cleanup();
+            // }
             
             // Clean up texture resources
             if let Some(ref textures) = self.textures {
