@@ -980,7 +980,7 @@ impl VulkanCore {
         } else {
             vec![]
         };
-        let layer_names_raw: Vec<*const i8> = layer_names
+        let layer_names_raw: Vec<*const u8> = layer_names
             .iter()
             .map(|raw_name| raw_name.as_ptr())
             .collect();
